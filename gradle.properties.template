@@ -1,0 +1,4 @@
+githubUser=
+githubToken=
+
+org.gradle.daemon=false
