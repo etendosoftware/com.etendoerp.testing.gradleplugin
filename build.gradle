@@ -1,0 +1,58 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+}
+
+group = 'com.etendoerp'
+version = '1.0.0'
+
+gradlePlugin {
+    plugins {
+        TestConfigPlugin {
+            id = 'com.etendoerp.testing.gradleplugin'
+            implementationClass = 'com.etendoerp.testing.TestConfigPlugin'
+        }
+    }
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['src/main/groovy']
+        }
+    }
+}
+
+repositories {
+    gradlePluginPortal()
+    mavenCentral()
+}
+
+publishing {
+    publications {
+        pluginMaven(MavenPublication) {
+            groupId = group
+            artifactId = 'testing.gradleplugin'
+            version = project.version
+        }
+    }
+    repositories {
+        maven {
+            url "https://maven.pkg.github.com/etendosoftware/com.etendoerp.testing.gradleplugin"
+            credentials {
+                username "${githubUser}"
+                password "${githubToken}"
+            }
+        }
+    }
+}
+
+tasks.named('publish') {
+    dependsOn 'build'
+}
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+    archiveClassifier.set('sources')
+}
