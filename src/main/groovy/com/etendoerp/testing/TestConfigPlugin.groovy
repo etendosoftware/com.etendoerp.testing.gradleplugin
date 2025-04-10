@@ -26,39 +26,37 @@ class TestConfigPlugin implements Plugin<Project> {
         project.sourceSets {
             test {
                 java {
-                    srcDirs 'src-test/src'
-                    outputDir = project.file("src-test/build/classes")
+                    srcDirs = ['src-test/src']
                 }
                 resources {
-                    srcDirs 'src-test/resources'
+                    srcDirs = ['src-test/resources']
                 }
                 groovy {
-                    srcDirs "src-test/test/groovy"
-                    outputDir = project.file("src-test/build/classes")
+                    srcDirs = ["src-test/test/groovy"]
+                    output.classesDirs = project.files("src-test/build/classes")
                 }
             }
         }
 
         // Dynamic source set configuration for 'modules' directory
         if (project.file('modules').exists() && project.file('modules').isDirectory()) {
-            project.file('modules').eachDir { dir ->
-                project.sourceSets.test.java.srcDirs += "${dir}/src-test/src"
-                project.sourceSets.test.resources.srcDirs += "${dir}/src-test/resources"
-                project.sourceSets.test.groovy.srcDirs += "${dir}/src-test/test/groovy"
+            project.file('modules').eachDir {
+                project.sourceSets.test.java.srcDirs += it.toString() + "/src-test/src"
+                project.sourceSets.test.resources.srcDirs += it.toString() + "/src-test/resources"
+                project.sourceSets.test.groovy.srcDirs += it.toString() + "/src-test/test/groovy"
             }
         }
 
         // Dynamic source set configuration for 'modules_core' directory
         if (project.file('modules_core').exists() && project.file('modules_core').isDirectory()) {
-            project.file('modules_core').eachDir { dir ->
-                project.sourceSets.test.java.srcDirs += "${dir}/src-test"
-                project.sourceSets.test.resources.srcDirs += "${dir}/src-test/resources"
-                project.sourceSets.test.groovy.srcDirs += "${dir}/src-test/test/groovy"
+            project.file('modules_core').eachDir {
+                project.sourceSets.test.java.srcDirs += it.toString() + "/src-test"
+                project.sourceSets.test.resources.srcDirs += it.toString() + "/src-test/resources"
+                project.sourceSets.test.groovy.srcDirs += it.toString() + "/src-test/test/groovy"
             }
         }
 
-        project.sourceSets.test.java.outputDir = project.file("src-test/build/classes")
-        project.sourceSets.test.groovy.outputDir = project.file("src-test/build/classes")
+        project.sourceSets.test.java.srcDirs += "src-test/src"
     }
 
     /**
@@ -71,21 +69,36 @@ class TestConfigPlugin implements Plugin<Project> {
         }
 
         project.dependencies {
-            testImplementation 'org.codehaus.groovy:groovy-all:3.0.9'
-            testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-3.0")
-            testImplementation 'org.spockframework:spock-core'
-            testImplementation 'org.spockframework:spock-junit4'
-            testImplementation 'junit:junit:4.13.1'
-            testImplementation 'org.mockito:mockito-core:5.0.0'
-            testImplementation("com.athaydes:spock-reports:2.0-groovy-3.0") {
+            // Groovy dependencies
+            testImplementation 'org.codehaus.groovy:groovy-all:3.0.9' // Core Groovy library for testing
+
+            // Spock dependencies for testing
+            testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-3.0") // BOM for Spock framework
+            testImplementation 'org.spockframework:spock-core' // Core Spock testing framework
+            testImplementation 'org.spockframework:spock-junit4' // Spock integration with JUnit 4
+
+            // JUnit dependencies
+            testImplementation 'junit:junit:4.13.1' // JUnit 4 for unit testing
+            testRuntimeOnly 'org.junit.vintage:junit-vintage-engine' // JUnit Vintage for running JUnit 4 tests
+            testImplementation 'org.junit.platform:junit-platform-suite-api:1.9.2' // JUnit Platform Suite API
+            testRuntimeOnly 'org.junit.platform:junit-platform-suite-engine:1.9.2' // JUnit Platform Suite Engine
+
+            // Mockito dependencies
+            testImplementation 'org.mockito:mockito-core:5.0.0' // Core Mockito library for mocking
+            testImplementation 'org.mockito:mockito-junit-jupiter:5.2.0' // Mockito integration with JUnit 5
+
+            // Reporting dependencies
+            testImplementation("com.athaydes:spock-reports:2.0-groovy-3.0") { // Spock reporting library
                 transitive = false
             }
-            testImplementation project.fileTree(project.projectDir) {
+
+            // Local test libraries
+            testImplementation project.fileTree(project.projectDir) { // Include local test JARs
                 include "lib/test/*.jar"
             }
-            antClasspath('org.apache.ant:ant-junit:1.9.2') { transitive = false }
-            testRuntimeOnly 'org.junit.vintage:junit-vintage-engine'
-            testImplementation 'org.mockito:mockito-junit-jupiter:5.2.0'
+
+            // Ant dependencies
+            antClasspath('org.apache.ant:ant-junit:1.9.2') { transitive = false } // Ant JUnit task for testing
         }
 
         project.task('depsTest') {
@@ -110,6 +123,21 @@ class TestConfigPlugin implements Plugin<Project> {
             maxHeapSize = '2G'
         }
 
+        project.tasks.named('compileTestJava') {
+            it.destinationDirectory.set(project.file("src-test/build/classes"))
+        }
+
+        project.tasks.named('compileTestGroovy') {
+            it.destinationDirectory.set(project.file("src-test/build/classes"))
+            it.dependsOn project.tasks.named('compileTestJava')
+        }
+
+        project.tasks.named('test') {
+            it.classpath += project.files("src-test/build/classes")
+            it.jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+        }
+
+        // Ant taskdef for compatibility
         project.ant.taskdef(
                 name: 'junit',
                 classname: 'org.apache.tools.ant.taskdefs.optional.junit.JUnitTask',
