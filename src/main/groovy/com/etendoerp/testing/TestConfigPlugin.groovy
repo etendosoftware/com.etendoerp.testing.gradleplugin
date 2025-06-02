@@ -82,6 +82,7 @@ class TestConfigPlugin implements Plugin<Project> {
             testRuntimeOnly 'org.junit.vintage:junit-vintage-engine' // JUnit Vintage for running JUnit 4 tests
             testImplementation 'org.junit.platform:junit-platform-suite-api:1.9.2' // JUnit Platform Suite API
             testRuntimeOnly 'org.junit.platform:junit-platform-suite-engine:1.9.2' // JUnit Platform Suite Engine
+            testImplementation 'org.junit.jupiter:junit-jupiter-params:5.9.2' // JUnit Jupiter support for parameterized tests
 
             // Mockito dependencies
             testImplementation 'org.mockito:mockito-core:5.0.0' // Core Mockito library for mocking
